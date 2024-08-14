@@ -1,8 +1,8 @@
 # main.py
 from agency_swarm import Agency
-from agents.planner_agent import PlannerAgent
-from agents.suggester_agent import SuggesterAgent
-from agents.browsing_agent import BrowsingAgent
+from agent.planner_agent import PlannerAgent
+from agent.suggester_agent import SuggesterAgent
+from agent.browsing_agent import BrowsingAgent
 from config.config import GROQ_API_KEY, GROQ_API_BASE
 import asyncio
 import json
