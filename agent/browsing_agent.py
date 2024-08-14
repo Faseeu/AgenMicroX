@@ -41,9 +41,9 @@ class BrowsingAgent(Agent):
     def __init__(self, name="Browsing", description="Advanced AI browsing agent"):
         super().__init__(name, description)
         # Load the settings.yml file
-        settings_path = Path(__file__).resolve().parent.parent / "config" / "settings.yml"
+        settings = Path(__file__).resolve().parent.parent / "config" / "settings.yml"
         with open(settings_path, 'r') as file:
-            config_data = yaml.safe_load(file)
+           self.settings = yaml.safe_load(file)
 
         self.searxng_instance = config_data.get('searxng_instance', SEARXNG_INSTANCE)
         self.groq_model = config_data.get('groq_model', "mixtral-8x7b-32768")  # Use default if not in settings.yml
@@ -76,7 +76,7 @@ class BrowsingAgent(Agent):
                 suggestions = data.get("suggestions", [])
 
                 return {"results": results, "suggestions": suggestions}
-
+               )
     async def refined_search_retriever(self, query: str, chat_history: List[Dict[str, str]]) -> str:
         prompt = f"""
         You are Perplexica, an advanced AI browsing agent. Analyze the conversation and follow-up question below. Your task is to:
