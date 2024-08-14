@@ -1,0 +1,6 @@
+# requirements.txt
+agency-swarm
+python-dotenv
+litellm
+aiohttp
+beautifulsoup4
