@@ -12,6 +12,7 @@ import re
 from datetime import datetime
 from urllib.parse import urlencode
 import yaml
+from pathlib import Path
 class SearxngSearchOptions:
     def __init__(self, categories: Optional[List[str]] = None, 
                  engines: Optional[List[str]] = None, 
