@@ -11,7 +11,7 @@ class PlannerAgent(Agent):
     async def create_plan(self, user_input):
         # Generate initial plan based on user input
         plan_prompt = f"Create a detailed project plan based on the following user input: {user_input}"
-        plan_response = await completion(messages=[{"role": "user", "content": plan_prompt}])
+        plan_response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": plan_prompt}])
         self.plan = json.loads(plan_response['choices'][0]['message']['content'])
         
         # Communicate with SuggesterAgent for improvements
