@@ -1,9 +1,8 @@
 # agents/planner_agent.py
 from agency_swarm.agents import Agent
 from agency_swarm.tools import BaseTool
-from agency_swarm.util.oai import chat_completion_request
 import json
-
+from litellm import completion
 class PlannerAgent(Agent):
     def __init__(self, name="Planner", description="Plans the project architecture and tasks"):
         super().__init__(name, description)
@@ -12,7 +11,7 @@ class PlannerAgent(Agent):
     async def create_plan(self, user_input):
         # Generate initial plan based on user input
         plan_prompt = f"Create a detailed project plan based on the following user input: {user_input}"
-        plan_response = await chat_completion_request(messages=[{"role": "user", "content": plan_prompt}])
+        plan_response = await completion(messages=[{"role": "user", "content": plan_prompt}])
         self.plan = json.loads(plan_response['choices'][0]['message']['content'])
         
         # Communicate with SuggesterAgent for improvements
