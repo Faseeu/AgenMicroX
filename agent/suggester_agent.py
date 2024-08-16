@@ -1,7 +1,7 @@
 # agents/suggester_agent.py
 from agency_swarm.agents import Agent
 from agency_swarm.tools import BaseTool
-from agency_swarm.util.oai import chat_completion_request
+from litellm import completion
 import json
 
 class SuggesterAgent(Agent):
@@ -10,7 +10,7 @@ class SuggesterAgent(Agent):
 
     async def review_plan(self, plan):
         review_prompt = f"Review the following project plan and suggest improvements: {json.dumps(plan)}"
-        review_response = await chat_completion_request(messages=[{"role": "user", "content": review_prompt}])
+        review_response = await completion(model="groq/llama-3.1-70b-versatile",messages=[{"role": "user", "content": review_prompt}])
         suggestions = json.loads(review_response['choices'][0]['message']['content'])
         
         return json.dumps({"suggestions": suggestions})
