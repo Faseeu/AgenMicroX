@@ -46,7 +46,7 @@ class BrowsingAgent(Agent):
            self.settings = yaml.safe_load(file)
 
         self.searxng_instance = config_data.get('searxng_instance', SEARXNG_INSTANCE)
-        self.groq_model = config_data.get('groq_model', "mixtral-8x7b-32768")  # Use default if not in settings.yml
+        self.groq_model = config_data.get('groq_model', "llama-3.1-70b-versatile")  # Use default if not in settings.yml
        
      
         # You can change this to your preferred model
@@ -132,7 +132,7 @@ class BrowsingAgent(Agent):
         verified_docs = []
         for doc in docs:
             prompt = verification_prompt.format(content=doc["pageContent"])
-            response = await chat_completion_request(messages=[{"role": "user", "content": prompt}])
+            response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": prompt}])
             doc["metadata"]["credibilityAssessment"] = response['choices'][0]['message']['content']
             verified_docs.append(doc)
         
@@ -153,7 +153,7 @@ class BrowsingAgent(Agent):
         Comparison:        
         '''
         
-        response = await chat_completion_request(messages=[{"role": "user", "content": comparison_prompt}])
+        response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": comparison_prompt}])
         return response['choices'][0]['message']['content']
 
     async def process_documents(self, docs: List[Dict[str, Any]], query: str) -> str:
@@ -240,7 +240,7 @@ class BrowsingAgent(Agent):
         Response:
         """
 
-        response = await chat_completion_request(messages=[{"role": "user", "content": perplexica_prompt}])
+        response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": perplexica_prompt}])
         return response['choices'][0]['message']['content']
 
     def format_chat_history(self, chat_history: List[Dict[str, str]]) -> str:
