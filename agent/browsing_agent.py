@@ -79,7 +79,7 @@ class BrowsingAgent(Agent):
                )
     async def refined_search_retriever(self, query: str, chat_history: List[Dict[str, str]]) -> str:
         prompt = f"""
-        You are Perplexica, an advanced AI browsing agent. Analyze the conversation and follow-up question below. Your task is to:
+        You are Perplexica, an advanced AI browsing agent.You are working in an agency of ai agents who will communicate with you to ask questions to different tasks,they refer to you as browsing agent.Analyze the conversation and follow-up question below. Your task is to:
 
         1. Rephrase the question for optimal web searching if needed.
         2. Determine if web searching is necessary or if the task requires other tools.
