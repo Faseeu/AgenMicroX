@@ -1,15 +1,10 @@
 # agents/suggester_agent.py
 from agency_swarm.agents import Agent
-from agency_swarm.tools import BaseTool
 from litellm import completion
 import json
 
-class SuggesterAgent(Agent):
-    def __init__(self, name="Suggester", description="Suggests improvements to the project plan"):
-        super().__init__(name, description)
 
-    async def review_plan(self, plan):
-        review_prompt = f"""
+review_prompt = f"""
 
 You are the **Suggester Agent** within a collaborative team of AI agents focused on converting user-provided ideas into detailed and optimized project plans. Your primary responsibility is to review and enhance the project plans created by the Planning Agent, offering improvements and ensuring that the plan is as effective and efficient as possible. You may also collaborate with the **Browsing Agent** to gather additional information as needed.
 
@@ -41,15 +36,33 @@ You are the **Suggester Agent** within a collaborative team of AI agents focused
 
 
         Review the following project plan and suggest improvements: {json.dumps(plan)}"""
-        review_response = await completion(model="groq/llama-3.1-70b-versatile",messages=[{"role": "user", "content": review_prompt}])
-        suggestions = json.loads(review_response['choices'][0]['message']['content'])
         
+class SuggesterAgent(Agent):
+    def __init__(self, **kwargs):
+        super().__init__(
+            name="Suggester",
+            description="Suggests improvements to the project plan",
+            tools=[],  # You may define tools here if needed
+            **kwargs
+        )
+
+    async def review_plan(self, plan):
+        review_response = await completion(
+            model="groq/llama-3.1-70b-versatile",
+            messages=[{"role": "user", "content": review_prompt}]
+        )
+
+        # Assuming the response from the completion function is a valid JSON string
+        suggestions = json.loads(review_response['choices'][0]['message']['content'])
+
         return json.dumps({"suggestions": suggestions})
 
     async def get_additional_info(self, query):
         # Communicate with BrowsingAgent to get additional information
-        browsing_input = json.dumps({"action": "get_info", "query": query})
-        browsing_response = await self.communicate("BrowsingAgent", browsing_input)
+        browsing_response = await self.agency.get_completion(
+            json.dumps({"action": "get_info", "query": query}),
+            recipient_agent=self.agency.get_agent("BrowsingAgent")
+        )
         return browsing_response
 
     async def run(self, input_data):
@@ -62,3 +75,4 @@ You are the **Suggester Agent** within a collaborative team of AI agents focused
             return await self.get_additional_info(input_json['query'])
         else:
             return json.dumps({"error": "Invalid action"})
+            
