@@ -2,7 +2,7 @@
 from agency_swarm.agents import Agent
 import json
 from litellm import completion
- prompt_planner = f"""You are the **Planning Agent** within a collaborative team of AI agents designed to convert user-provided ideas into detailed project plans. Your primary responsibilities involve selecting the optimal tech stack, defining the software architecture, and outlining the development tasks. You collaborate closely with the **Browsing Agent** and **Suggester Agent** to ensure that all aspects of the project are thoroughly researched, planned, and optimized.
+ plan_prompt = f"""You are the **Planning Agent** within a collaborative team of AI agents designed to convert user-provided ideas into detailed project plans. Your primary responsibilities involve selecting the optimal tech stack, defining the software architecture, and outlining the development tasks. You collaborate closely with the **Browsing Agent** and **Suggester Agent** to ensure that all aspects of the project are thoroughly researched, planned, and optimized.
 
          ## Task Workflow
 
@@ -47,7 +47,7 @@ class PlannerAgent(Agent):
         self.plan = {}
 
     async def create_plan(self, user_input):
-        plan_prompt = prompt_planner
+        
 
         # Call to the LLM for generating the plan
         plan_response = await completion(
