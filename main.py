@@ -5,12 +5,13 @@ from agency_swarm import Agency, set_openai_key
 from agent.planner_agent import PlannerAgent
 from agent.suggester_agent import SuggesterAgent
 from agent.browsing_agent import BrowsingAgent
-import json
+import os
 
 
-openaikey = os.
+
 def main():
     # Set the OpenAI key
+    openaikey=os.getenv('GROQ_API_KEY')
     set_openai_key("openaikey")
 
     # Initialize agents
