@@ -1,10 +1,11 @@
-# agents/browsing_agent.py
+# agent/browsing_agent.py
+
 import json
 import asyncio
 from typing import List, Dict, Any, Optional
 from agency_swarm.agents import Agent
 from agency_swarm.tools import BaseTool
-from agency_swarm.util.oai import chat_completion_request
+from litellm import completion
 from config.config import GROQ_API_KEY, GROQ_API_BASE, SEARXNG_INSTANCE
 import aiohttp
 from bs4 import BeautifulSoup
@@ -13,6 +14,7 @@ from datetime import datetime
 from urllib.parse import urlencode
 import yaml
 from pathlib import Path
+
 class SearxngSearchOptions:
     def __init__(self, categories: Optional[List[str]] = None, 
                  engines: Optional[List[str]] = None, 
@@ -40,17 +42,15 @@ class SearxngSearchResult:
 class BrowsingAgent(Agent):
     def __init__(self, name="Browsing", description="Advanced AI browsing agent"):
         super().__init__(name, description)
+
         # Load the settings.yml file
-        settings = Path(__file__).resolve().parent.parent / "config" / "settings.yml"
+        settings_path = Path(__file__).resolve().parent.parent / "config" / "settings.yml"
         with open(settings_path, 'r') as file:
-           self.settings = yaml.safe_load(file)
+            self.settings = yaml.safe_load(file)
 
-        self.searxng_instance = config_data.get('searxng_instance', SEARXNG_INSTANCE)
-        self.groq_model = config_data.get('groq_model', "llama-3.1-70b-versatile")  # Use default if not in settings.yml
+        self.searxng_instance = self.settings.get('searxng_instance', SEARXNG_INSTANCE)
+        self.groq_model = self.settings.get('groq_model', "llama-3.1-70b-versatile")
        
-     
-        # You can change this to your preferred model
-
     async def search_searxng(self, query: str, opts: Optional[SearxngSearchOptions] = None) -> Dict[str, Any]:
         url = f"{self.searxng_instance}/search"
         params = {
@@ -70,16 +70,17 @@ class BrowsingAgent(Agent):
 
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params) as response:
-                data = await response.json()
+                if response.status == 200:
+                    data = await response.json()
+                    results = [SearxngSearchResult(**result) for result in data.get("results", [])]
+                    suggestions = data.get("suggestions", [])
+                    return {"results": results, "suggestions": suggestions}
+                else:
+                    return {"results": [], "suggestions": [], "error": f"Failed to fetch data: {response.status}"}
 
-                results = [SearxngSearchResult(**result) for result in data.get("results", [])]
-                suggestions = data.get("suggestions", [])
-
-                return {"results": results, "suggestions": suggestions}
-               )
     async def refined_search_retriever(self, query: str, chat_history: List[Dict[str, str]]) -> str:
         prompt = f"""
-        You are Perplexica, an advanced AI browsing agent.You are working in an agency of ai agents who will communicate with you to ask questions to different tasks,they refer to you as browsing agent.Analyze the conversation and follow-up question below. Your task is to:
+                You are Perplexica, an advanced AI browsing agent.You are working in an agency of ai agents who will communicate with you to ask questions to different tasks,they refer to you as browsing agent.Analyze the conversation and follow-up question below. Your task is to:
 
         1. Rephrase the question for optimal web searching if needed.
         2. Determine if web searching is necessary or if the task requires other tools.
@@ -98,22 +99,25 @@ class BrowsingAgent(Agent):
         Follow-up question: {query}
         Analyzed and Rephrased Query:
         """
-        response = await chat_completion_request(messages=[{"role": "user", "content": prompt}])
+        response = await completion(messages=[{"role": "user", "content": prompt}])
         return response['choices'][0]['message']['content']
 
     async def get_document_from_link(self, link: str) -> Dict[str, Any]:
         async with aiohttp.ClientSession() as session:
             async with session.get(link) as response:
-                content = await response.text()
-                soup = BeautifulSoup(content, 'html.parser')
-                text = soup.get_text(separator='\n', strip=True)
-                return {
-                    "pageContent": text,
-                    "metadata": {
-                        "source": link,
-                        "title": soup.title.string if soup.title else "No title"
+                if response.status == 200:
+                    content = await response.text()
+                    soup = BeautifulSoup(content, 'html.parser')
+                    text = soup.get_text(separator='\n', strip=True)
+                    return {
+                        "pageContent": text,
+                        "metadata": {
+                            "source": link,
+                            "title": soup.title.string if soup.title else "No title"
+                        }
                     }
-                }
+                else:
+                    return {"pageContent": "", "metadata": {"source": link, "title": "Failed to load document"}}
 
     async def verify_content(self, docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         verification_prompt = """
@@ -132,7 +136,7 @@ class BrowsingAgent(Agent):
         verified_docs = []
         for doc in docs:
             prompt = verification_prompt.format(content=doc["pageContent"])
-            response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": prompt}])
+            response = await completion(model=self.groq_model, messages=[{"role": "user", "content": prompt}])
             doc["metadata"]["credibilityAssessment"] = response['choices'][0]['message']['content']
             verified_docs.append(doc)
         
@@ -153,7 +157,7 @@ class BrowsingAgent(Agent):
         Comparison:        
         '''
         
-        response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": comparison_prompt}])
+        response = await completion(model=self.groq_model, messages=[{"role": "user", "content": comparison_prompt}])
         return response['choices'][0]['message']['content']
 
     async def process_documents(self, docs: List[Dict[str, Any]], query: str) -> str:
@@ -240,7 +244,7 @@ class BrowsingAgent(Agent):
         Response:
         """
 
-        response = await completion(model="groq/llama-3.1-70b-versatile", messages=[{"role": "user", "content": perplexica_prompt}])
+        response = await completion(model=self.groq_model, messages=[{"role": "user", "content": perplexica_prompt}])
         return response['choices'][0]['message']['content']
 
     def format_chat_history(self, chat_history: List[Dict[str, str]]) -> str:
@@ -256,3 +260,4 @@ class BrowsingAgent(Agent):
 
         result = await self.perplexica_agent(query, chat_history)
         return json.dumps({"response": result})
+                    
