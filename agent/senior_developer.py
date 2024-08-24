@@ -5,7 +5,7 @@ from PIL import Image
 from io import BytesIO
 from duckduckgo_search import AsyncDDGS
 from agency_swarm.tools import BaseTool
-from pydantic import Field
+from pydantic import Field, validator
 from agency_swarm import Agent, Agency, set_openai_client
 from litellm import LiteLLM
 import asyncio
@@ -16,6 +16,159 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.formatted_text import HTML
 
 # Tools
+
+class CreateAgencyTool(BaseTool):
+    """
+    Tool to create a new development agency with a specified number of developers.
+
+    Args:
+        agency_name (str): The name to assign to the newly created agency.
+        num_developers (int): The number of ExpertDeveloperAgent instances to create within the agency.
+
+    Returns:
+        None
+    """
+    agency_name: str = Field(..., description="The name to assign to the newly created agency.")
+    num_developers: int = Field(..., description="The number of developers to include in the agency.")
+
+    def run(self):
+        from dev_agency_template.development_agency import ExpertDeveloperAgent, VerifierAgent, DevelopmentAgency
+
+        verifier = VerifierAgent()
+        developers = [ExpertDeveloperAgent() for _ in range(self.num_developers)]
+        agency = DevelopmentAgency(verifier, developers)
+        self.development_agencies[self.agency_name] = agency
+        return f"Agency '{self.agency_name}' created with {self.num_developers} developers."
+
+class AssignPlanToAgencyTool(BaseTool):
+    """
+    Tool to assign a development plan to an existing agency.
+
+    Args:
+        agency_name (str): The name of the agency to assign the plan to.
+        plan (Plan): The development plan to assign, which will be converted to JSON format.
+
+    Returns:
+        str: Confirmation message indicating whether the plan was successfully assigned.
+    """
+    agency_name: str = Field(..., description="The name of the agency to assign the plan to.")
+    plan: dict = Field(..., description="The development plan to assign to the agency in dictionary format.")
+
+    def run(self):
+        agency = self.development_agencies.get(self.agency_name)
+        if agency:
+            agency.receive_plan(self.plan)
+            return f"Plan assigned to agency '{self.agency_name}'."
+        return f"Agency '{self.agency_name}' not found."
+
+
+
+
+class ModifyMainPyTool(BaseTool):
+    """
+    Tool to append code to the 'main.py' file, ensuring that any modifications are validated before being applied.
+    
+    Args:
+        code_to_add (str): The code to append to the 'main.py' file. This code should be thoroughly validated and not contain any placeholders.
+    
+    Returns:
+        str: Confirmation message indicating the code has been successfully added to 'main.py' or an error message if the process fails.
+    """
+    code_to_add: str = Field(..., description="The code to append to the 'main.py' file.")
+
+    @validator('code_to_add')
+    def validate_code(cls, v):
+        # Ensure the code does not contain placeholders and is properly formatted
+        if "placeholder" in v:
+            raise ValueError("Code contains placeholders. Please provide complete and functional code"
+class ImplementCodeTool(BaseTool):
+    """
+    Tool to implement and verify code from a specified agency. This tool collects the code, verifies its integrity,
+    and then writes it to the appropriate files if it passes validation.
+
+    Args:
+        agency_name (str): The name of the agency from which to implement code.
+
+    Returns:
+        str: Result message indicating the success or failure of the code implementation process.
+    """
+    agency_name: str = Field(..., description="The name of the agency to implement code from.")
+
+    def run(self):
+        agency = self.development_agencies.get(self.agency_name)
+        if not agency:
+            return f"Error: Agency '{self.agency_name}' not found."
+
+        try:
+            # Collect the code from the agency
+            code_submission = agency.collect_code()
+
+            # Verify the collected code
+            verified = agency.verify_and_finalize_code(code_submission)
+            if not verified:
+                return f"Code verification failed for '{self.agency_name}'."
+
+            # Write the verified code to the appropriate files
+            for file in code_submission.files:
+                with open(file.file_name, 'w') as f:
+                    f.write(file.code)
+
+            return f"Code from '{self.agency_name}' successfully implemented."
+
+        except Exception as e:
+            return f"Error during code implementation for agency '{self.agency_name}': {e}'nal code'.")
+        if not v.strip():
+            raise ValueError("Code to add cannot be empty.")
+        return v
+
+    def run(self):
+        try:
+            # Check if 'main.py' exists
+            if not os.path.exists("main.py"):
+                return "Error: 'main.py' does not exist."
+
+            # Append the validated code to 'main.py'
+            with open("main.py", "a") as f:
+                f.write(f"\n{self.code_to_add}")
+
+            return "Code successfully added to 'main.py'."
+
+        except Exception as e:
+            return f"Error while modifying 'main.py': {e}"
+
+
+class HandleTerminalCommandTool(BaseTool):
+    """
+    Tool to handle specific terminal commands related to functionality and agency management.
+
+    Args:
+        command (str): The terminal command to execute.
+
+    Returns:
+        str: Result of the executed command.
+    """
+    command: str = Field(..., description="The terminal command to execute.")
+
+    def run(self):
+        if self.command.startswith("/add functionality/"):
+            # Add specific functionality to main.py
+            functionality_code = "# Functionality added by Senior Developer Agent\n"
+            ModifyMainPyTool(code_to_add=functionality_code).run()
+            return "Functionality added to 'main.py'."
+
+        elif self.command.startswith("/add improvement/"):
+            # Add specific improvements to main.py
+            improvement_code = "# Improvement added by Senior Developer Agent\n"
+            ModifyMainPyTool(code_to_add=improvement_code).run()
+            return "Improvement added to 'main.py'."
+
+        elif self.command == "/list agencies/":
+            # List all created agencies
+            agencies = ", ".join(self.development_agencies.keys())
+            return f"Agencies created: {agencies}"
+
+        else:
+            return "Unknown command."
 class EncodeImageTool(BaseTool):
     image_path: str = Field(..., description="Path to the image file.")
     
