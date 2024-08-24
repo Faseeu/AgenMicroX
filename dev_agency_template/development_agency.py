@@ -2,6 +2,7 @@ from models import Plan, CodeSubmission, Task, CodeFile
 
 class ExpertDeveloperAgent:
     def __init__(self):
+      self.modal="groq/llama-3.1-70b-versatile"
       self.instructions=""
       self.memory = {}
 
@@ -15,6 +16,7 @@ class ExpertDeveloperAgent:
 
 class VerifierAgent:
     def __init__(self):
+        self.modal="groq/llama-3.1-70b-versatile"
         self.instructions=""
         self.memory = {}
 
