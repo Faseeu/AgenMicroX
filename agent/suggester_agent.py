@@ -49,7 +49,7 @@ class SuggesterAgent(Agent):
     async def review_plan(self, plan):
         review_response = await completion(
             model="groq/llama-3.1-70b-versatile",
-            messages=[{"role": "user", "content": review_prompt}]
+            messages=[{"role": "Planner_agent", "content": review_prompt}]
         )
 
         # Assuming the response from the completion function is a valid JSON string
