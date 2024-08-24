@@ -1,14 +1,14 @@
 # main.py
 from config.config import GROQ_API_KEY
 import json
-from agency_swarm import Agency, set_openai_key
+from agency_swarm import Agency, set_openai_client
 from agent.planner_agent import PlannerAgent
 from agent.suggester_agent import SuggesterAgent
 from agent.browsing_agent import BrowsingAgent
 import os
 from openai import OpenAI
 from astra_assistants import patch
-
+from agent.senior_developer import SeniorDeveloperAgent
 
 def main():
     # Set the OpenAI key
@@ -19,7 +19,7 @@ def main():
     planner = PlannerAgent()
     suggester = SuggesterAgent()
     browser = BrowsingAgent()
-
+    senior_developer = SeniorDeveloperAgent()
     # Initialize the agency with the agent communication chart
     agency = Agency(
         agency_chart=[senior_developer, #Top level agent
