@@ -177,6 +177,8 @@ class SeniorDeveloperAgent(Agent):
         super().__init__(
             name="Senior Developer",
             description="I oversee the development process, guide developer agents, and ensure that the code adheres to the plan.",
+            model="groq/llama-3.1-70b-versatile",
+            instructions="",
             tools=[
                 EncodeImageTool, ValidateImageURLTool, SearchTool,
                 WriteFileTool, ReadFileTool, InitializeProjectTool,
@@ -188,19 +190,11 @@ class SeniorDeveloperAgent(Agent):
         )
 
 # Set up LiteLLM client
-client = LiteLLM(api_key="YOUR_LITELLM_API_KEY", base_url="https://your.litellm.endpoint")
-set_openai_client(client)
 
 # Initialize your agents
 senior_developer = SeniorDeveloperAgent()
 
-# Create your agency
-agency = Agency(
-    agency_chart=[senior_developer],
-    temperature=0.5,
-    max_prompt_tokens=25000
-)
-
+# 
 # Command completion and history
 commands = WordCompleter([
     '/add', '/edit', '/new', '/search', '/image', '/clear',
@@ -290,7 +284,4 @@ async def handle_commands():
 # Run the main loop
 async def main():
     await handle_commands()
-
-if __name__ == "__main__":
-    asyncio.run(main())
     
