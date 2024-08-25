@@ -40,7 +40,15 @@ def main():
             [suggester, browser]    # Communication between suggester and browser
         ],
         temperature=0.5,
-        max_prompt_tokens=15000
+        max_prompt_tokens=15000,
+        shared_instructions=""
+    )
+    agency = Agency(
+        agency_chart=[
+            senior_developer,
+            [senior_developer, planner_agency],
+            [senior_developer, frontend_dev_agency],
+        ]
     )
     while True:
         # Get user input
