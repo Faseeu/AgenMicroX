@@ -1,6 +1,6 @@
 from models import Plan, CodeSubmission, Task, CodeFile
-
-class ExpertDeveloperAgent:
+from agency_swarm.agent import AGENT
+class ExpertDeveloperAgent(AGENT):
     def __init__(self):
       self.modal="groq/llama-3.1-70b-versatile"
       self.instructions=""
@@ -14,7 +14,7 @@ class ExpertDeveloperAgent:
             task_id=task.task_id
         )
 
-class VerifierAgent:
+class VerifierAgent(AGENT):
     def __init__(self):
         self.modal="groq/llama-3.1-70b-versatile"
         self.instructions=""
@@ -31,7 +31,7 @@ class VerifierAgent:
                     return False
         return True
 
-class DevelopmentAgency:
+class DevelopmentAgency(Agency):
     def __init__(self, verifier_agent, developer_agents):
         self.verifier_agent = verifier_agent
         self.developer_agents = developer_agents
